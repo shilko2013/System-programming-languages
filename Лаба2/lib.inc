@@ -1,10 +1,25 @@
+global exit
+global string_length
+global print_string
+global print_char
+global print_newline
+global print_uint
+global print_int
+global read_char
+global read_word
+global parse_uint
+global parse_int
+global string_equals
+global string_copy
+global read_string
+
 section .data
 char_10: db 10
 
 section .text
-;exit:
-	;mov 	rax, 60
-	;syscall
+exit:
+	mov 	rax, 60
+	syscall
 	
 string_length:
 	xor		rax, rax
@@ -104,8 +119,8 @@ read_word:
 	jz		.start_reading
 	cmp 	al, 0x20
 	jz		.start_reading
-	jmp 	.write
-.loop:
+	jmp 	.read_word_write
+.read_word_loop:
 	call 	read_char
 	cmp 	al, 0xA
 	jz		.end_reading
@@ -116,19 +131,19 @@ read_word:
 	cmp 	al, 0x20
 	jz		.end_reading
 	cmp 	r8, r10
-	je		.error
-.write:
+	je		.read_word_error
+.read_word_write:
 	test	al, al
 	jz		.end_reading
 	mov		byte[r9+r10], al
 	inc		r10
-	jmp 	.loop
+	jmp 	.read_word_loop
 .end_reading:
 	mov		byte[r9+r10], 0
 	mov		rax, r9
 	mov 	rdx, r10
 	ret
-.error:
+.read_word_error:
 	xor		rax, rax
 	ret
 	
@@ -144,17 +159,17 @@ parse_uint:
 	;inc		r9
 	;inc 	r10
 	;jmp 	.nulls
-.loop:
+.parse_uint_loop:
 	cmp		byte[rdi+r9], 0x30
-	jb		.end
+	jb		.parse_uint_end
 	cmp		byte[rdi+r9], 0x39
-	ja		.end
+	ja		.parse_uint_end
 	mul		r8
 	sub		byte[rdi+r9], 0x30
 	add		al, byte[rdi+r9]
 	inc		r9
-	jmp 	.loop
-.end:
+	jmp 	.parse_uint_loop
+.parse_uint_end:
 	sub		r9, r10
 	mov 	rdx, r9
 	ret
@@ -163,7 +178,6 @@ parse_int:
 	cmp 	byte[rdi], 0x2D
 	jz		.negative
 	call 	parse_uint
-.end:
 	ret
 .negative:
 	inc		rdi
@@ -175,14 +189,14 @@ parse_int:
 string_equals:
 	xor		rcx, rcx
 	xor 	rax, rax
-.loop:
+ .string_equals_loop:
 	mov		r8b, byte[rdi+rcx]
 	mov		r9b, byte[rsi+rcx]
 	inc 	rcx
 	cmp		r8b, r9b
 	jnz		.not_equals
 	cmp		r8b, 0
-	jnz		.loop
+	jnz		.string_equals_loop
 	inc		rax
 	ret
 .not_equals:
@@ -192,21 +206,45 @@ string_equals:
 string_copy: ;rdi str rsi getter rdx buffer_size
 	xor		rcx, rcx
 	cmp		rdx, 0
-	jle		.error
-.loop:
+	jle		.string_copy_error
+.string_copy_loop:
 	cmp		rcx, rdx
-	jz 		.end
+	jz 		.string_copy_end
 	mov		r8b, byte[rdi+rcx]
 	mov		byte[rsi+rcx], r8b
 	inc		rcx
-	jmp		.loop
-.end:
+	jmp		.string_copy_loop
+.string_copy_end:
 	xor		r8, r8
 	cmp 	byte[rdi+rcx+1], 0
-	jnz		.error
+	jnz		.string_copy_error
 	mov		byte[rsi+rcx+1], r8b
 	mov		rax, rsi
 	ret
-.error:	
+.string_copy_error:	
+	xor		rax, rax
+	ret
+	
+read_string:
+	mov 	r9, rdi
+	mov		r8, rsi ;хранит rsi
+	xor		r10, r10 ;счетчик
+.read_string_loop:
+	call 	read_char
+	cmp 	al, 0xA
+	jz		.end_reading
+	test	al, al
+	jz		.end_reading
+	mov		byte[r9+r10], al
+	inc		r10
+	cmp 	r8, r10
+	jb		.read_string_error
+	jmp 	.read_string_loop
+.end_reading:
+	mov		byte[r9+r10], 0
+	mov		rax, r9
+	mov 	rdx, r10
+	ret
+.read_string_error:
 	xor		rax, rax
 	ret

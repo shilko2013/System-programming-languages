@@ -1,0 +1,7 @@
+#!/bin/bash
+nasm -g -f elf64 main.asm -o main.o
+nasm -g -f elf64 lib.inc -o lib.o
+nasm -g -f elf64 dict.asm -o dict.o
+ld main.o lib.o dict.o -o main
+rm main.o lib.o dict.o
+./main
